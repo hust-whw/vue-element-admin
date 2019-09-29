@@ -1,13 +1,14 @@
 <template>
-  <div :class="className" :style="{height:height,width:width}"/>
+  <div :class="className" :style="{height:height,width:width}" />
 </template>
 
 <script>
 import echarts from 'echarts'
 require('echarts/theme/macarons') // echarts theme
-import { debounce } from '@/utils'
+import resize from './mixins/resize'
 
 export default {
+  mixins: [resize],
   props: {
     className: {
       type: String,
@@ -44,35 +45,22 @@ export default {
     }
   },
   mounted() {
-    this.initChart()
-    if (this.autoResize) {
-      this.__resizeHanlder = debounce(() => {
-        if (this.chart) {
-          this.chart.resize()
-        }
-      }, 100)
-      window.addEventListener('resize', this.__resizeHanlder)
-    }
-
-    // 监听侧边栏的变化
-    const sidebarElm = document.getElementsByClassName('sidebar-container')[0]
-    sidebarElm.addEventListener('transitionend', this.__resizeHanlder)
+    this.$nextTick(() => {
+      this.initChart()
+    })
   },
   beforeDestroy() {
     if (!this.chart) {
       return
     }
-    if (this.autoResize) {
-      window.removeEventListener('resize', this.__resizeHanlder)
-    }
-
-    const sidebarElm = document.getElementsByClassName('sidebar-container')[0]
-    sidebarElm.removeEventListener('transitionend', this.__resizeHanlder)
-
     this.chart.dispose()
     this.chart = null
   },
   methods: {
+    initChart() {
+      this.chart = echarts.init(this.$el, 'macarons')
+      this.setOptions(this.chartData)
+    },
     setOptions({ expectedData, actualData } = {}) {
       this.chart.setOption({
         xAxis: {
@@ -141,10 +129,6 @@ export default {
           animationEasing: 'quadraticOut'
         }]
       })
-    },
-    initChart() {
-      this.chart = echarts.init(this.$el, 'macarons')
-      this.setOptions(this.chartData)
     }
   }
 }
